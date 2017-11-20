@@ -43,6 +43,24 @@
       ],
       "documentation":"<p>The <code>BatchWriteItem</code> operation puts or deletes multiple items in one or more tables. A single call to <code>BatchWriteItem</code> can write up to 16 MB of data, which can comprise as many as 25 put or delete requests. Individual items to be written can be as large as 400 KB.</p> <note> <p> <code>BatchWriteItem</code> cannot update items. To update items, use the <code>UpdateItem</code> action.</p> </note> <p>The individual <code>PutItem</code> and <code>DeleteItem</code> operations specified in <code>BatchWriteItem</code> are atomic; however <code>BatchWriteItem</code> as a whole is not. If any requested operations fail because the table's provisioned throughput is exceeded or an internal processing failure occurs, the failed operations are returned in the <code>UnprocessedItems</code> response parameter. You can investigate and optionally resend the requests. Typically, you would call <code>BatchWriteItem</code> in a loop. Each iteration would check for unprocessed items and submit a new <code>BatchWriteItem</code> request with those unprocessed items until all items have been processed.</p> <p>Note that if <i>none</i> of the items can be processed due to insufficient provisioned throughput on all of the tables in the request, then <code>BatchWriteItem</code> will return a <code>ProvisionedThroughputExceededException</code>.</p> <important> <p>If DynamoDB returns any unprocessed items, you should retry the batch operation on those items. However, <i>we strongly recommend that you use an exponential backoff algorithm</i>. If you retry the batch operation immediately, the underlying read or write requests can still fail due to throttling on the individual tables. If you delay the batch operation using exponential backoff, the individual requests in the batch are much more likely to succeed.</p> <p>For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#BatchOperations\">Batch Operations and Error Handling</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p> </important> <p>With <code>BatchWriteItem</code>, you can efficiently write or delete large amounts of data, such as from Amazon Elastic MapReduce (EMR), or copy data from another database into DynamoDB. In order to improve performance with these large-scale operations, <code>BatchWriteItem</code> does not behave in the same way as individual <code>PutItem</code> and <code>DeleteItem</code> calls would. For example, you cannot specify conditions on individual put and delete requests, and <code>BatchWriteItem</code> does not return deleted items in the response.</p> <p>If you use a programming language that supports concurrency, you can use threads to write items in parallel. Your application must include the necessary logic to manage the threads. With languages that don't support threading, you must update or delete the specified items one at a time. In both situations, <code>BatchWriteItem</code> performs the specified put and delete operations in parallel, giving you the power of the thread pool approach without having to introduce complexity into your application.</p> <p>Parallel processing reduces latency, but each specified put and delete request consumes the same number of write capacity units whether it is processed in parallel or not. Delete operations on nonexistent items consume one write capacity unit.</p> <p>If one or more of the following is true, DynamoDB rejects the entire batch write operation:</p> <ul> <li> <p>One or more tables specified in the <code>BatchWriteItem</code> request does not exist.</p> </li> <li> <p>Primary key attributes specified on an item in the request do not match those in the corresponding table's primary key schema.</p> </li> <li> <p>You try to perform multiple operations on the same item in the same <code>BatchWriteItem</code> request. For example, you cannot put and delete the same item in the same <code>BatchWriteItem</code> request. </p> </li> <li> <p>There are more than 25 requests in the batch.</p> </li> <li> <p>Any individual item in a batch exceeds 400 KB.</p> </li> <li> <p>The total request size exceeds 16 MB.</p> </li> </ul>"
     },
+    "CreateBackup":{
+      "name":"CreateBackup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateBackupInput"},
+      "output":{"shape":"CreateBackupOutput"},
+      "errors":[
+        {"shape":"TableNotFoundException"},
+        {"shape":"TableInUseException"},
+        {"shape":"BackupRestoreSettingsNotFoundException"},
+        {"shape":"BackupInUseException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>Creates a backup for an existing table. DynamoDB backups incorporate all writes (deletes, put, updates) completed within the last five minutes before the backup request was initiated, and may include some writes (put, delete, update) completed before the backup request was finished. </p> <note> <p> All partitions of the table are backed up independently for each backup request, so depending on the time a partition is backed-up, the data gets into the backup. </p> </note> <p>For DynamoDB tables with LSIs, LSIs are backed up along with the table data. </p> <p> The following will need to be manually setup on the restored table: </p> <ul> <li> <p> GSIs. </p> </li> <li> <p> Backup and restore settings. </p> </li> <li> <p> IAM policies. </p> </li> <li> <p> Streams settings. </p> </li> <li> <p> Tags. </p> </li> <li> <p> TTL settings. </p> </li> </ul>"
+    },
     "CreateTable":{
       "name":"CreateTable",
       "http":{
@@ -57,6 +75,22 @@
         {"shape":"InternalServerError"}
       ],
       "documentation":"<p>The <code>CreateTable</code> operation adds a new table to your account. In an AWS account, table names must be unique within each region. That is, you can have two tables with same name if you create the tables in different regions.</p> <p> <code>CreateTable</code> is an asynchronous operation. Upon receiving a <code>CreateTable</code> request, DynamoDB immediately returns a response with a <code>TableStatus</code> of <code>CREATING</code>. After the table is created, DynamoDB sets the <code>TableStatus</code> to <code>ACTIVE</code>. You can perform read and write operations only on an <code>ACTIVE</code> table. </p> <p>You can optionally define secondary indexes on the new table, as part of the <code>CreateTable</code> operation. If you want to create multiple tables with secondary indexes on them, you must create the tables sequentially. Only one table with secondary indexes can be in the <code>CREATING</code> state at any given time.</p> <p>You can use the <code>DescribeTable</code> action to check the table status.</p>"
+    },
+    "DeleteBackup":{
+      "name":"DeleteBackup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteBackupInput"},
+      "output":{"shape":"DeleteBackupOutput"},
+      "errors":[
+        {"shape":"BackupNotFoundException"},
+        {"shape":"BackupInUseException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>Deletes an existing backup of a table.</p>"
     },
     "DeleteItem":{
       "name":"DeleteItem",
@@ -90,6 +124,34 @@
         {"shape":"InternalServerError"}
       ],
       "documentation":"<p>The <code>DeleteTable</code> operation deletes a table and all of its items. After a <code>DeleteTable</code> request, the specified table is in the <code>DELETING</code> state until DynamoDB completes the deletion. If the table is in the <code>ACTIVE</code> state, you can delete it. If a table is in <code>CREATING</code> or <code>UPDATING</code> states, then DynamoDB returns a <code>ResourceInUseException</code>. If the specified table does not exist, DynamoDB returns a <code>ResourceNotFoundException</code>. If table is already in the <code>DELETING</code> state, no error is returned. </p> <note> <p>DynamoDB might continue to accept data read and write operations, such as <code>GetItem</code> and <code>PutItem</code>, on a table in the <code>DELETING</code> state until the table deletion is complete.</p> </note> <p>When you delete a table, any indexes on that table are also deleted.</p> <p>If you have DynamoDB Streams enabled on the table, then the corresponding stream on that table goes into the <code>DISABLED</code> state, and the stream is automatically deleted after 24 hours.</p> <p>Use the <code>DescribeTable</code> action to check the status of the table. </p>"
+    },
+    "DescribeBackup":{
+      "name":"DescribeBackup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeBackupInput"},
+      "output":{"shape":"DescribeBackupOutput"},
+      "errors":[
+        {"shape":"BackupNotFoundException"},
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>Describes an existing backup of a table. Also contains the source table details. To run this command you need the backup-arn, which can be obtained from the output of the <code>CreateBackup</code> or <code>ListBackups</code> actions.</p> <p> When a backup is created, its backup status is set to <code>CREATING</code>. Once the backup is complete, the backup status will change to <code>ACTIVE</code>. </p>"
+    },
+    "DescribeBackupRestoreSettings":{
+      "name":"DescribeBackupRestoreSettings",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeBackupRestoreSettingsInput"},
+      "output":{"shape":"DescribeBackupRestoreSettingsOutput"},
+      "errors":[
+        {"shape":"TableNotFoundException"},
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>Checks the status of the backup restore settings on the specified table. If backups are enabled, <code>BackupRestoreSettingsStatus</code> will be set to <code>ENABLED</code>.</p>"
     },
     "DescribeLimits":{
       "name":"DescribeLimits",
@@ -147,6 +209,19 @@
       ],
       "documentation":"<p>The <code>GetItem</code> operation returns a set of attributes for the item with the given primary key. If there is no matching item, <code>GetItem</code> does not return any data and there will be no <code>Item</code> element in the response.</p> <p> <code>GetItem</code> provides an eventually consistent read by default. If your application requires a strongly consistent read, set <code>ConsistentRead</code> to <code>true</code>. Although a strongly consistent read might take more time than an eventually consistent read, it always returns the last updated value.</p>"
     },
+    "ListBackups":{
+      "name":"ListBackups",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListBackupsInput"},
+      "output":{"shape":"ListBackupsOutput"},
+      "errors":[
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>List backups associated with an AWS account. To list backups for a given table, specify <code>TableName</code>. This returns a paginated list of results with at most 1MB worth of items in a page. You can also specify a limit for the maximum number of entries to be returned in a page.</p> <p> You can uniquely identify each backup using the Backup ARN, even though two backups for the same table or different tables can have the same name. </p> <note> <p> If a table is deleted and re-created, the backups of the older instance will still be listed. If the two tables had different schema, then you should be aware that the older backups will be restored to the older schema. </p> </note>"
+    },
     "ListTables":{
       "name":"ListTables",
       "http":{
@@ -189,7 +264,7 @@
         {"shape":"ItemCollectionSizeLimitExceededException"},
         {"shape":"InternalServerError"}
       ],
-      "documentation":"<p>Creates a new item, or replaces an old item with a new item. If an item that has the same primary key as the new item already exists in the specified table, the new item completely replaces the existing item. You can perform a conditional put operation (add a new item if one with the specified primary key doesn't exist), or replace an existing item if it has certain attribute values. You can return the item's attribute values in the same operation, using the <code>ReturnValues</code> parameter.</p> <important> <p>This topic provides general information about the <code>PutItem</code> API.</p> <p>For information on how to call the <code>PutItem</code> API using the AWS SDK in specific languages, see the following:</p> <ul> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/aws-cli/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS Command Line Interface </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/DotNetSDKV3/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for .NET </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/SdkForCpp/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for C++ </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/SdkForGoV1/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for Go </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/SdkForJava/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for Java </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/AWSJavaScriptSDK/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for JavaScript </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/SdkForPHPV3/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for PHP V3 </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/boto3/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for Python </a> </p> </li> <li> <p> <a href=\"http://docs.aws.amazon.com/goto/SdkForRubyV2/dynamodb-2012-08-10/PutItem\"> PutItem in the AWS SDK for Ruby V2 </a> </p> </li> </ul> </important> <p>When you add an item, the primary key attribute(s) are the only required attributes. Attribute values cannot be null. String and Binary type attributes must have lengths greater than zero. Set type attributes cannot be empty. Requests with empty values will be rejected with a <code>ValidationException</code> exception.</p> <note> <p>To prevent a new item from replacing an existing item, use a conditional expression that contains the <code>attribute_not_exists</code> function with the name of the attribute being used as the partition key for the table. Since every record must contain that attribute, the <code>attribute_not_exists</code> function will only succeed if no matching item exists.</p> </note> <p>For more information about <code>PutItem</code>, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html\">Working with Items</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
+      "documentation":"<p>Creates a new item, or replaces an old item with a new item. If an item that has the same primary key as the new item already exists in the specified table, the new item completely replaces the existing item. You can perform a conditional put operation (add a new item if one with the specified primary key doesn't exist), or replace an existing item if it has certain attribute values.</p> <p>In addition to putting an item, you can also return the item's attribute values in the same operation, using the <code>ReturnValues</code> parameter.</p> <p>When you add an item, the primary key attribute(s) are the only required attributes. Attribute values cannot be null. String and Binary type attributes must have lengths greater than zero. Set type attributes cannot be empty. Requests with empty values will be rejected with a <code>ValidationException</code> exception.</p> <note> <p>To prevent a new item from replacing an existing item, use a conditional expression that contains the <code>attribute_not_exists</code> function with the name of the attribute being used as the partition key for the table. Since every record must contain that attribute, the <code>attribute_not_exists</code> function will only succeed if no matching item exists.</p> </note> <p>For more information about <code>PutItem</code>, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html\">Working with Items</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
     },
     "Query":{
       "name":"Query",
@@ -204,7 +279,25 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"InternalServerError"}
       ],
-      "documentation":"<p>The <code>Query</code> operation finds items based on primary key values. You can query any table or secondary index that has a composite primary key (a partition key and a sort key). </p> <p>Use the <code>KeyConditionExpression</code> parameter to provide a specific value for the partition key. The <code>Query</code> operation will return all of the items from the table or index with that partition key value. You can optionally narrow the scope of the <code>Query</code> operation by specifying a sort key value and a comparison operator in <code>KeyConditionExpression</code>. To further refine the <code>Query</code> results, you can optionally provide a <code>FilterExpression</code>. A <code>FilterExpression</code> determines which items within the results should be returned to you. All of the other results are discarded. </p> <p> A <code>Query</code> operation always returns a result set. If no matching items are found, the result set will be empty. Queries that do not return results consume the minimum number of read capacity units for that type of read operation. </p> <note> <p> DynamoDB calculates the number of read capacity units consumed based on item size, not on the amount of data that is returned to an application. The number of capacity units consumed will be the same whether you request all of the attributes (the default behavior) or just some of them (using a projection expression). The number will also be the same whether or not you use a <code>FilterExpression</code>. </p> </note> <p> <code>Query</code> results are always sorted by the sort key value. If the data type of the sort key is Number, the results are returned in numeric order; otherwise, the results are returned in order of UTF-8 bytes. By default, the sort order is ascending. To reverse the order, set the <code>ScanIndexForward</code> parameter to false. </p> <p> A single <code>Query</code> operation will read up to the maximum number of items set (if using the <code>Limit</code> parameter) or a maximum of 1 MB of data and then apply any filtering to the results using <code>FilterExpression</code>. If <code>LastEvaluatedKey</code> is present in the response, you will need to paginate the result set. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html#Query.Pagination\">Paginating the Results</a> in the <i>Amazon DynamoDB Developer Guide</i>. </p> <p> <code>FilterExpression</code> is applied after a <code>Query</code> finishes, but before the results are returned. A <code>FilterExpression</code> cannot contain partition key or sort key attributes. You need to specify those attributes in the <code>KeyConditionExpression</code>. </p> <note> <p> A <code>Query</code> operation can return an empty result set and a <code>LastEvaluatedKey</code> if all the items read for the page of results are filtered out. </p> </note> <p>You can query a table, a local secondary index, or a global secondary index. For a query on a table or on a local secondary index, you can set the <code>ConsistentRead</code> parameter to <code>true</code> and obtain a strongly consistent result. Global secondary indexes support eventually consistent reads only, so do not specify <code>ConsistentRead</code> when querying a global secondary index.</p>"
+      "documentation":"<p>A <code>Query</code> operation uses the primary key of a table or a secondary index to directly access items from that table or index.</p> <p>Use the <code>KeyConditionExpression</code> parameter to provide a specific value for the partition key. The <code>Query</code> operation will return all of the items from the table or index with that partition key value. You can optionally narrow the scope of the <code>Query</code> operation by specifying a sort key value and a comparison operator in <code>KeyConditionExpression</code>. You can use the <code>ScanIndexForward</code> parameter to get results in forward or reverse order, by sort key.</p> <p>Queries that do not return results consume the minimum number of read capacity units for that type of read operation.</p> <p>If the total number of items meeting the query criteria exceeds the result set size limit of 1 MB, the query stops and results are returned to the user with the <code>LastEvaluatedKey</code> element to continue the query in a subsequent operation. Unlike a <code>Scan</code> operation, a <code>Query</code> operation never returns both an empty result set and a <code>LastEvaluatedKey</code> value. <code>LastEvaluatedKey</code> is only provided if you have used the <code>Limit</code> parameter, or if the result set exceeds 1 MB (prior to applying a filter). </p> <p>You can query a table, a local secondary index, or a global secondary index. For a query on a table or on a local secondary index, you can set the <code>ConsistentRead</code> parameter to <code>true</code> and obtain a strongly consistent result. Global secondary indexes support eventually consistent reads only, so do not specify <code>ConsistentRead</code> when querying a global secondary index.</p>"
+    },
+    "RestoreTableFromBackup":{
+      "name":"RestoreTableFromBackup",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RestoreTableFromBackupInput"},
+      "output":{"shape":"RestoreTableFromBackupOutput"},
+      "errors":[
+        {"shape":"TableAlreadyExistsException"},
+        {"shape":"TableInUseException"},
+        {"shape":"BackupNotFoundException"},
+        {"shape":"BackupInUseException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>Creates a new table from an existing backup.</p> <p>The restored table will include all the table data present in the backup. Also if there were any LSIs present in the original table they will be restored with the table. </p> <note> <p> The table will be restored with the same provisioned throughput as the original source table </p> </note> <p> You cannot restore multiple tables from the same backup at the same time. </p>"
     },
     "Scan":{
       "name":"Scan",
@@ -219,7 +312,7 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"InternalServerError"}
       ],
-      "documentation":"<p>The <code>Scan</code> operation returns one or more items and item attributes by accessing every item in a table or a secondary index. To have DynamoDB return fewer items, you can provide a <code>FilterExpression</code> operation.</p> <p>If the total number of scanned items exceeds the maximum data set size limit of 1 MB, the scan stops and results are returned to the user as a <code>LastEvaluatedKey</code> value to continue the scan in a subsequent operation. The results also include the number of items exceeding the limit. A scan can result in no table data meeting the filter criteria. </p> <p>A single <code>Scan</code> operation will read up to the maximum number of items set (if using the <code>Limit</code> parameter) or a maximum of 1 MB of data and then apply any filtering to the results using <code>FilterExpression</code>. If <code>LastEvaluatedKey</code> is present in the response, you will need to paginate the result set. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.Pagination\">Paginating the Results</a> in the <i>Amazon DynamoDB Developer Guide</i>. </p> <p> <code>Scan</code> operations proceed sequentially; however, for faster performance on a large table or secondary index, applications can request a parallel <code>Scan</code> operation by providing the <code>Segment</code> and <code>TotalSegments</code> parameters. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.ParallelScan\">Parallel Scan</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p> <p> <code>Scan</code> uses eventually consistent reads when accessing the data in a table; therefore, the result set might not include the changes to data in the table immediately before the operation began. If you need a consistent copy of the data, as of the time that the <code>Scan</code> begins, you can set the <code>ConsistentRead</code> parameter to <code>true</code>.</p>"
+      "documentation":"<p>The <code>Scan</code> operation returns one or more items and item attributes by accessing every item in a table or a secondary index. To have DynamoDB return fewer items, you can provide a <code>FilterExpression</code> operation.</p> <p>If the total number of scanned items exceeds the maximum data set size limit of 1 MB, the scan stops and results are returned to the user as a <code>LastEvaluatedKey</code> value to continue the scan in a subsequent operation. The results also include the number of items exceeding the limit. A scan can result in no table data meeting the filter criteria. </p> <p>By default, <code>Scan</code> operations proceed sequentially; however, for faster performance on a large table or secondary index, applications can request a parallel <code>Scan</code> operation by providing the <code>Segment</code> and <code>TotalSegments</code> parameters. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Scan.html#Scan.ParallelScan\">Parallel Scan</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p> <p>By default, <code>Scan</code> uses eventually consistent reads when accessing the data in a table; therefore, the result set might not include the changes to data in the table immediately before the operation began. If you need a consistent copy of the data, as of the time that the Scan begins, you can set the <code>ConsistentRead</code> parameter to <code>true</code>.</p>"
     },
     "TagResource":{
       "name":"TagResource",
@@ -250,6 +343,21 @@
         {"shape":"ResourceInUseException"}
       ],
       "documentation":"<p>Removes the association of tags from an Amazon DynamoDB resource. You can call UntagResource up to 5 times per second, per account. </p> <p>For an overview on tagging DynamoDB resources, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tagging.html\">Tagging for DynamoDB</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
+    },
+    "UpdateBackupRestoreSettings":{
+      "name":"UpdateBackupRestoreSettings",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateBackupRestoreSettingsInput"},
+      "output":{"shape":"UpdateBackupRestoreSettingsOutput"},
+      "errors":[
+        {"shape":"TableNotFoundException"},
+        {"shape":"TableInUseException"},
+        {"shape":"InternalServerError"}
+      ],
+      "documentation":"<p>Enables or disables backups for an existing table. </p>"
     },
     "UpdateItem":{
       "name":"UpdateItem",
@@ -298,7 +406,7 @@
         {"shape":"LimitExceededException"},
         {"shape":"InternalServerError"}
       ],
-      "documentation":"<p>The UpdateTimeToLive method will enable or disable TTL for the specified table. A successful <code>UpdateTimeToLive</code> call returns the current <code>TimeToLiveSpecification</code>; it may take up to one hour for the change to fully process. Any additional <code>UpdateTimeToLive</code> calls for the same table during this one hour duration result in a <code>ValidationException</code>. </p> <p>TTL compares the current time in epoch time format to the time stored in the TTL attribute of an item. If the epoch time value stored in the attribute is less than the current time, the item is marked as expired and subsequently deleted.</p> <note> <p> The epoch time format is the number of seconds elapsed since 12:00:00 AM January 1st, 1970 UTC. </p> </note> <p>DynamoDB deletes expired items on a best-effort basis to ensure availability of throughput for other data operations. </p> <important> <p>DynamoDB typically deletes expired items within two days of expiration. The exact duration within which an item gets deleted after expiration is specific to the nature of the workload. Items that have expired and not been deleted will still show up in reads, queries, and scans.</p> </important> <p>As items are deleted, they are removed from any Local Secondary Index and Global Secondary Index immediately in the same eventually consistent way as a standard delete operation.</p> <p>For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html\">Time To Live</a> in the Amazon DynamoDB Developer Guide. </p>"
+      "documentation":"<p>Specify the lifetime of individual table items. The database automatically removes the item at the expiration of the item. The UpdateTimeToLive method will enable or disable TTL for the specified table. A successful <code>UpdateTimeToLive</code> call returns the current <code>TimeToLiveSpecification</code>; it may take up to one hour for the change to fully process. Any additional <code>UpdateTimeToLive</code> calls for the same table during this one hour duration result in a <code>ValidationException</code>. </p> <p>TTL compares the current time in epoch time format to the time stored in the TTL attribute of an item. If the epoch time value stored in the attribute is less than the current time, the item is marked as expired and subsequently deleted.</p> <note> <p> The epoch time format is the number of seconds elapsed since 12:00:00 AM January 1st, 1970 UTC. </p> </note> <p>DynamoDB deletes expired items on a best-effort basis to ensure availability of throughput for other data operations. </p> <important> <p>DynamoDB typically deletes expired items within two days of expiration. The exact duration within which an item gets deleted after expiration is specific to the nature of the workload. Items that have expired and not been deleted will still show up in reads, queries, and scans.</p> </important> <p>As items are deleted, they are removed from any Local Secondary Index and Global Secondary Index immediately in the same eventually consistent way as a standard delete operation.</p> <p>For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html\">Time To Live</a> in the Amazon DynamoDB Developer Guide. </p>"
     }
   },
   "shapes":{
@@ -416,6 +524,189 @@
       "documentation":"<p>For the <code>UpdateItem</code> operation, represents the attributes to be modified, the action to perform on each, and the new value for each.</p> <note> <p>You cannot use <code>UpdateItem</code> to update any primary key attributes. Instead, you will need to delete the item, and then use <code>PutItem</code> to create a new item with new attributes.</p> </note> <p>Attribute values cannot be null; string and binary type attributes must have lengths greater than zero; and set type attributes must not be empty. Requests with empty values will be rejected with a <code>ValidationException</code> exception.</p>"
     },
     "Backfilling":{"type":"boolean"},
+    "BackupArn":{
+      "type":"string",
+      "max":1024,
+      "min":37
+    },
+    "BackupDescription":{
+      "type":"structure",
+      "members":{
+        "BackupDetails":{
+          "shape":"BackupDetails",
+          "documentation":"<p>Contains the details of the backup created for the table. </p>"
+        },
+        "SourceTableDetails":{
+          "shape":"SourceTableDetails",
+          "documentation":"<p>Contains the details of the table when the backup was created. </p>"
+        },
+        "SourceTableFeatureDetails":{
+          "shape":"SourceTableFeatureDetails",
+          "documentation":"<p>Contains the details of the features enabled on the table when the backup was created. For example, LSIs, GSIs, streams, TTL, backups.</p>"
+        }
+      },
+      "documentation":"<p>Contains the description of the backup created for the table.</p>"
+    },
+    "BackupDetails":{
+      "type":"structure",
+      "required":[
+        "BackupArn",
+        "BackupStatus"
+      ],
+      "members":{
+        "BackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p>ARN associated with the backup.</p>"
+        },
+        "BackupName":{
+          "shape":"BackupName",
+          "documentation":"<p>Name of the requested backup.</p>"
+        },
+        "BackupSizeInBytes":{
+          "shape":"BackupSizeInBytes",
+          "documentation":"<p>Size of the backup in bytes.</p>"
+        },
+        "BackupStatus":{
+          "shape":"BackupStatus",
+          "documentation":"<p>Backup can be in one of the following states: CREATING, ACTIVE, DELETED.</p>"
+        },
+        "BackupStartDateTime":{
+          "shape":"BackupStartDateTime",
+          "documentation":"<p>Time at which the backup started for the table.</p>"
+        },
+        "BackupEndDateTime":{
+          "shape":"BackupEndDateTime",
+          "documentation":"<p> Time at which the backup creation completed.</p>"
+        }
+      },
+      "documentation":"<p>Contains the details of the backup created for the table.</p>"
+    },
+    "BackupEndDateTime":{"type":"timestamp"},
+    "BackupInUseException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>There is another ongoing conflicting backup operation on the table. This backup is either being created, deleted or restored to a table. </p>",
+      "exception":true
+    },
+    "BackupName":{
+      "type":"string",
+      "max":255,
+      "min":3,
+      "pattern":"[a-zA-Z0-9_.-]+"
+    },
+    "BackupNotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>The requested backup was not found.</p>",
+      "exception":true
+    },
+    "BackupRestoreSettings":{
+      "type":"structure",
+      "members":{
+        "BackupRestoreSettingsStatus":{
+          "shape":"BackupRestoreSettingsStatus",
+          "documentation":"<p>BackupRestoreSettingsStatus can be one of the following : ENABLING, ENABLED, DISABLING, DISABLED.</p>"
+        }
+      },
+      "documentation":"<p>Backup and restore settings on the table when the backup was created.</p>"
+    },
+    "BackupRestoreSettingsEnabled":{"type":"boolean"},
+    "BackupRestoreSettingsInput":{
+      "type":"structure",
+      "required":["BackupRestoreSettingsEnabled"],
+      "members":{
+        "BackupRestoreSettingsEnabled":{
+          "shape":"BackupRestoreSettingsEnabled",
+          "documentation":"<p>Indicates if backup restore settings are enabled (true) or disabled (false) for the table.</p>"
+        }
+      },
+      "documentation":"<p>Enable or disable backup restore settings.</p>"
+    },
+    "BackupRestoreSettingsNotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>BackupRestoreSettings were not found for the table. To create a backup, backup and restore settings should be enabled on the specified table.</p>",
+      "exception":true
+    },
+    "BackupRestoreSettingsStatus":{
+      "type":"string",
+      "enum":[
+        "ENABLING",
+        "ENABLED",
+        "DISABLING",
+        "DISABLED"
+      ]
+    },
+    "BackupSizeInBytes":{
+      "type":"long",
+      "min":0
+    },
+    "BackupStartDateTime":{"type":"timestamp"},
+    "BackupStatus":{
+      "type":"string",
+      "enum":[
+        "CREATING",
+        "ACTIVE",
+        "DELETED"
+      ]
+    },
+    "BackupSummaries":{
+      "type":"list",
+      "member":{"shape":"BackupSummary"}
+    },
+    "BackupSummary":{
+      "type":"structure",
+      "members":{
+        "TableName":{
+          "shape":"TableName",
+          "documentation":"<p>Name of the table.</p>"
+        },
+        "TableId":{
+          "shape":"TableId",
+          "documentation":"<p>Unique identifier for the table.</p>"
+        },
+        "TableArn":{
+          "shape":"TableArn",
+          "documentation":"<p>ARN associated with the table.</p>"
+        },
+        "BackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p> ARN associated with the backup.</p>"
+        },
+        "BackupName":{
+          "shape":"BackupName",
+          "documentation":"<p>Name of the specified backup. </p>"
+        },
+        "BackupCreationDateTime":{
+          "shape":"BackupEndDateTime",
+          "documentation":"<p>Time at which the backup was created.</p>"
+        },
+        "BackupStatus":{
+          "shape":"BackupStatus",
+          "documentation":"<p>Status of the backup. Backup can be in one of the following states: CREATING, ACTIVE, DELETED.</p>"
+        },
+        "BackupSizeInBytes":{
+          "shape":"BackupSizeInBytes",
+          "documentation":"<p>Size of the backup in bytes.</p>"
+        },
+        "SourceTableExists":{
+          "shape":"SourceTableExists",
+          "documentation":"<p>Indicates if the table from which the backup was created still exists or is deleted. </p>"
+        }
+      },
+      "documentation":"<p>Contains details for the backup.</p>"
+    },
+    "BackupsInputLimit":{
+      "type":"integer",
+      "max":100,
+      "min":1
+    },
     "BatchGetItemInput":{
       "type":"structure",
       "required":["RequestItems"],
@@ -600,6 +891,32 @@
       "member":{"shape":"ConsumedCapacity"}
     },
     "ConsumedCapacityUnits":{"type":"double"},
+    "CreateBackupInput":{
+      "type":"structure",
+      "required":[
+        "TableName",
+        "BackupName"
+      ],
+      "members":{
+        "TableName":{
+          "shape":"TableName",
+          "documentation":"<p>The name of the table.</p>"
+        },
+        "BackupName":{
+          "shape":"BackupName",
+          "documentation":"<p>Specified name for the backup.</p>"
+        }
+      }
+    },
+    "CreateBackupOutput":{
+      "type":"structure",
+      "members":{
+        "BackupDetails":{
+          "shape":"BackupDetails",
+          "documentation":"<p>Contains the details of the table when the backup was created.</p>"
+        }
+      }
+    },
     "CreateGlobalSecondaryIndexAction":{
       "type":"structure",
       "required":[
@@ -679,6 +996,25 @@
       "documentation":"<p>Represents the output of a <code>CreateTable</code> operation.</p>"
     },
     "Date":{"type":"timestamp"},
+    "DeleteBackupInput":{
+      "type":"structure",
+      "required":["BackupArn"],
+      "members":{
+        "BackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p>The ARN associated with the backup.</p>"
+        }
+      }
+    },
+    "DeleteBackupOutput":{
+      "type":"structure",
+      "members":{
+        "BackupDescription":{
+          "shape":"BackupDescription",
+          "documentation":"<p>Contains the details of the backup created for the table. </p>"
+        }
+      }
+    },
     "DeleteGlobalSecondaryIndexAction":{
       "type":"structure",
       "required":["IndexName"],
@@ -707,7 +1043,7 @@
         },
         "Expected":{
           "shape":"ExpectedAttributeMap",
-          "documentation":"<p>This is a legacy parameter. Use <code>ConditionExpression</code> instead. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.Expected.html\">Expected</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
+          "documentation":"<p>This is a legacy parameter. Use <code>ConditionExpresssion</code> instead. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.Expected.html\">Expected</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
         },
         "ConditionalOperator":{
           "shape":"ConditionalOperator",
@@ -786,6 +1122,44 @@
         }
       },
       "documentation":"<p>Represents the output of a <code>DeleteTable</code> operation.</p>"
+    },
+    "DescribeBackupInput":{
+      "type":"structure",
+      "required":["BackupArn"],
+      "members":{
+        "BackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p>The ARN associated with the backup.</p>"
+        }
+      }
+    },
+    "DescribeBackupOutput":{
+      "type":"structure",
+      "members":{
+        "BackupDescription":{
+          "shape":"BackupDescription",
+          "documentation":"<p>Includes the details of the backup created for the table.</p>"
+        }
+      }
+    },
+    "DescribeBackupRestoreSettingsInput":{
+      "type":"structure",
+      "required":["TableName"],
+      "members":{
+        "TableName":{
+          "shape":"TableName",
+          "documentation":"<p>Name of the table for which the customer wants to check the backup and restore settings.</p>"
+        }
+      }
+    },
+    "DescribeBackupRestoreSettingsOutput":{
+      "type":"structure",
+      "members":{
+        "BackupRestoreSettings":{
+          "shape":"BackupRestoreSettings",
+          "documentation":"<p>Backup and restore settings on the table when the backup was created.</p>"
+        }
+      }
     },
     "DescribeLimitsInput":{
       "type":"structure",
@@ -1023,6 +1397,28 @@
       "type":"list",
       "member":{"shape":"GlobalSecondaryIndexDescription"}
     },
+    "GlobalSecondaryIndexInfo":{
+      "type":"structure",
+      "members":{
+        "IndexName":{
+          "shape":"IndexName",
+          "documentation":"<p/>"
+        },
+        "KeySchema":{
+          "shape":"KeySchema",
+          "documentation":"<p/>"
+        },
+        "Projection":{
+          "shape":"Projection",
+          "documentation":"<p/>"
+        },
+        "ProvisionedThroughput":{
+          "shape":"ProvisionedThroughput",
+          "documentation":"<p/>"
+        }
+      },
+      "documentation":"<p/>"
+    },
     "GlobalSecondaryIndexList":{
       "type":"list",
       "member":{"shape":"GlobalSecondaryIndex"}
@@ -1048,6 +1444,10 @@
     "GlobalSecondaryIndexUpdateList":{
       "type":"list",
       "member":{"shape":"GlobalSecondaryIndexUpdate"}
+    },
+    "GlobalSecondaryIndexes":{
+      "type":"list",
+      "member":{"shape":"GlobalSecondaryIndexInfo"}
     },
     "IndexName":{
       "type":"string",
@@ -1213,12 +1613,50 @@
           "documentation":"<p>Too many operations for a given subscriber.</p>"
         }
       },
-      "documentation":"<p>The number of concurrent table requests (cumulative number of tables in the <code>CREATING</code>, <code>DELETING</code> or <code>UPDATING</code> state) exceeds the maximum allowed of 10.</p> <p>Also, for tables with secondary indexes, only one of those tables can be in the <code>CREATING</code> state at any point in time. Do not attempt to create more than one such table simultaneously.</p> <p>The total limit of tables in the <code>ACTIVE</code> state is 250.</p>",
+      "documentation":"<p>Up to 10 simultaneous table operations are allowed per account. This includes the create, delete, update table operations and enable/disable TTL on the table. It also includes the create a backup or restore a table from a backup operation.</p> <p>Also, for tables with secondary indexes, only one of those tables can be in the <code>CREATING</code> state at any point in time. Do not attempt to create more than one such table simultaneously.</p> <p>The total limit of tables in the <code>ACTIVE</code> state is 250.</p> <p> You can take two backups per table per day. If this limit is exceeded, you will get a <code>LimitExceededException</code>. Please contact us if you need to increase this limit. </p> <p> The restored table provisioned throughput is subjected to the account limits. If the provisioned throughput exceeds the account throughput limit, you will get a <code>LimitExceededException</code>. For more information on provisioned throughput minimums and maximums, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html\">Limits</a> in the Developer Guide. </p>",
       "exception":true
     },
     "ListAttributeValue":{
       "type":"list",
       "member":{"shape":"AttributeValue"}
+    },
+    "ListBackupsInput":{
+      "type":"structure",
+      "members":{
+        "TableName":{
+          "shape":"TableName",
+          "documentation":"<p>The backups from the table specified by <code>TableName</code> are listed. </p>"
+        },
+        "Limit":{
+          "shape":"BackupsInputLimit",
+          "documentation":"<p>Maximum number of backups to return at once.</p>"
+        },
+        "TimeRangeLowerBound":{
+          "shape":"TimeRangeLowerBound",
+          "documentation":"<p>Only backups created after this time are listed. TimeRangeLowerBound is inclusive.</p>"
+        },
+        "TimeRangeUpperBound":{
+          "shape":"TimeRangeUpperBound",
+          "documentation":"<p>Only backups created before this time are listed. TimeRangeUpperBound is exclusive. </p>"
+        },
+        "ExclusiveStartBackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p>LastEvaluatedBackupARN returned by the previous ListBackups call. </p>"
+        }
+      }
+    },
+    "ListBackupsOutput":{
+      "type":"structure",
+      "members":{
+        "BackupSummaries":{
+          "shape":"BackupSummaries",
+          "documentation":"<p>List of BackupSummary objects.</p>"
+        },
+        "LastEvaluatedBackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p>Last evaluated BackupARN.</p>"
+        }
+      }
     },
     "ListTablesInput":{
       "type":"structure",
@@ -1337,9 +1775,31 @@
       "type":"list",
       "member":{"shape":"LocalSecondaryIndexDescription"}
     },
+    "LocalSecondaryIndexInfo":{
+      "type":"structure",
+      "members":{
+        "IndexName":{
+          "shape":"IndexName",
+          "documentation":"<p/>"
+        },
+        "KeySchema":{
+          "shape":"KeySchema",
+          "documentation":"<p/>"
+        },
+        "Projection":{
+          "shape":"Projection",
+          "documentation":"<p/>"
+        }
+      },
+      "documentation":"<p/>"
+    },
     "LocalSecondaryIndexList":{
       "type":"list",
       "member":{"shape":"LocalSecondaryIndex"}
+    },
+    "LocalSecondaryIndexes":{
+      "type":"list",
+      "member":{"shape":"LocalSecondaryIndexInfo"}
     },
     "Long":{"type":"long"},
     "MapAttributeValue":{
@@ -1468,7 +1928,7 @@
         },
         "Expected":{
           "shape":"ExpectedAttributeMap",
-          "documentation":"<p>This is a legacy parameter. Use <code>ConditionExpression</code> instead. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.Expected.html\">Expected</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
+          "documentation":"<p>This is a legacy parameter. Use <code>ConditionExpresssion</code> instead. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.Expected.html\">Expected</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
         },
         "ReturnValues":{
           "shape":"ReturnValue",
@@ -1657,6 +2117,32 @@
       "documentation":"<p>The operation tried to access a nonexistent table or index. The resource might not be specified correctly, or its status might not be <code>ACTIVE</code>.</p>",
       "exception":true
     },
+    "RestoreTableFromBackupInput":{
+      "type":"structure",
+      "required":[
+        "TargetTableName",
+        "BackupArn"
+      ],
+      "members":{
+        "TargetTableName":{
+          "shape":"TableName",
+          "documentation":"<p>The name of the new table to which the backup must be restored.</p>"
+        },
+        "BackupArn":{
+          "shape":"BackupArn",
+          "documentation":"<p> The ARN associated with the backup.</p>"
+        }
+      }
+    },
+    "RestoreTableFromBackupOutput":{
+      "type":"structure",
+      "members":{
+        "TableDescription":{
+          "shape":"TableDescription",
+          "documentation":"<p>Represents the properties of a table.</p>"
+        }
+      }
+    },
     "ReturnConsumedCapacity":{
       "type":"string",
       "documentation":"<p>Determines the level of detail about provisioned throughput consumption that is returned in the response:</p> <ul> <li> <p> <code>INDEXES</code> - The response includes the aggregate <code>ConsumedCapacity</code> for the operation, together with <code>ConsumedCapacity</code> for each table and secondary index that was accessed.</p> <p>Note that some operations, such as <code>GetItem</code> and <code>BatchGetItem</code>, do not access any indexes at all. In these cases, specifying <code>INDEXES</code> will only return <code>ConsumedCapacity</code> information for table(s).</p> </li> <li> <p> <code>TOTAL</code> - The response includes only the aggregate <code>ConsumedCapacity</code> for the operation.</p> </li> <li> <p> <code>NONE</code> - No <code>ConsumedCapacity</code> details are included in the response.</p> </li> </ul>",
@@ -1809,6 +2295,75 @@
         "COUNT"
       ]
     },
+    "SourceTableDetails":{
+      "type":"structure",
+      "required":[
+        "TableName",
+        "TableId",
+        "KeySchema",
+        "TableCreationDateTime",
+        "ProvisionedThroughput",
+        "TableExists"
+      ],
+      "members":{
+        "TableName":{
+          "shape":"TableName",
+          "documentation":"<p>The name of the table for which the backup was created. </p>"
+        },
+        "TableId":{
+          "shape":"TableId",
+          "documentation":"<p>Unique identifier for the table. </p>"
+        },
+        "TableArn":{
+          "shape":"TableArn",
+          "documentation":"<p>ARN associated with the table.</p>"
+        },
+        "KeySchema":{
+          "shape":"KeySchema",
+          "documentation":"<p>Schema of the table. This schema can also be obtained from the CreateTable, UpdateTable and DeleteTable actions.</p>"
+        },
+        "TableCreationDateTime":{
+          "shape":"TableCreationDateTime",
+          "documentation":"<p>Time when the source table was created. </p>"
+        },
+        "ProvisionedThroughput":{
+          "shape":"ProvisionedThroughput",
+          "documentation":"<p>Read IOPs and Write IOPS on the table when the backup was created. </p>"
+        },
+        "TableExists":{
+          "shape":"SourceTableExists",
+          "documentation":"<p>Indicates if the table from which the backup was created still exists (true) or is deleted (false). </p>"
+        }
+      },
+      "documentation":"<p>Contains the details of the table when the backup was created. </p>"
+    },
+    "SourceTableExists":{"type":"boolean"},
+    "SourceTableFeatureDetails":{
+      "type":"structure",
+      "members":{
+        "LocalSecondaryIndexes":{
+          "shape":"LocalSecondaryIndexes",
+          "documentation":"<p>Represents the LSI properties for the table when the backup was created. It includes the IndexName, KeySchema and Projection for the LSIs on the table at the time of backup. </p>"
+        },
+        "GlobalSecondaryIndexes":{
+          "shape":"GlobalSecondaryIndexes",
+          "documentation":"<p>Represents the GSI properties for the table when the backup was created. It includes the IndexName, KeySchema, Projection and ProvisionedThroughput for the GSIs on the table at the time of backup.</p>"
+        },
+        "StreamDescription":{
+          "shape":"StreamSpecification",
+          "documentation":"<p>Stream settings on the table when the backup was created. </p>"
+        },
+        "TimeToLiveDescription":{
+          "shape":"TimeToLiveDescription",
+          "documentation":"<p>Item Expiry settings on the table when the backup was created.</p>"
+        },
+        "BackupRestoreSettings":{
+          "shape":"BackupRestoreSettings",
+          "documentation":"<p>Backup and restore settings on the table when the backup was created. </p>"
+        }
+      },
+      "documentation":"<p>Contains the details of the features enabled on the table when the backup was created. For example, LSIs, GSIs, streams, TTL, backups. </p>"
+    },
     "StreamArn":{
       "type":"string",
       "max":1024,
@@ -1844,6 +2399,16 @@
       "type":"list",
       "member":{"shape":"StringAttributeValue"}
     },
+    "TableAlreadyExistsException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>A table with the specified name already exists.</p>",
+      "exception":true
+    },
+    "TableArn":{"type":"string"},
+    "TableCreationDateTime":{"type":"timestamp"},
     "TableDescription":{
       "type":"structure",
       "members":{
@@ -1883,6 +2448,10 @@
           "shape":"String",
           "documentation":"<p>The Amazon Resource Name (ARN) that uniquely identifies the table.</p>"
         },
+        "TableId":{
+          "shape":"TableId",
+          "documentation":"<p>Unique identifier for the table.</p>"
+        },
         "LocalSecondaryIndexes":{
           "shape":"LocalSecondaryIndexDescriptionList",
           "documentation":"<p>Represents one or more local secondary indexes on the table. Each index is scoped to a given partition key value. Tables with one or more local secondary indexes are subject to an item collection size limit, where the amount of data within a given item collection cannot exceed 10 GB. Each element is composed of:</p> <ul> <li> <p> <code>IndexName</code> - The name of the local secondary index.</p> </li> <li> <p> <code>KeySchema</code> - Specifies the complete index key schema. The attribute names in the key schema must be between 1 and 255 characters (inclusive). The key schema must begin with the same partition key as the table.</p> </li> <li> <p> <code>Projection</code> - Specifies attributes that are copied (projected) from the table into the index. These are in addition to the primary key attributes and index key attributes, which are automatically projected. Each attribute specification is composed of:</p> <ul> <li> <p> <code>ProjectionType</code> - One of the following:</p> <ul> <li> <p> <code>KEYS_ONLY</code> - Only the index and primary keys are projected into the index.</p> </li> <li> <p> <code>INCLUDE</code> - Only the specified table attributes are projected into the index. The list of projected attributes are in <code>NonKeyAttributes</code>.</p> </li> <li> <p> <code>ALL</code> - All of the table attributes are projected into the index.</p> </li> </ul> </li> <li> <p> <code>NonKeyAttributes</code> - A list of one or more non-key attribute names that are projected into the secondary index. The total count of attributes provided in <code>NonKeyAttributes</code>, summed across all of the secondary indexes, must not exceed 20. If you project the same attribute into two different indexes, this counts as two distinct attributes when determining the total.</p> </li> </ul> </li> <li> <p> <code>IndexSizeBytes</code> - Represents the total size of the index, in bytes. DynamoDB updates this value approximately every six hours. Recent changes might not be reflected in this value.</p> </li> <li> <p> <code>ItemCount</code> - Represents the number of items in the index. DynamoDB updates this value approximately every six hours. Recent changes might not be reflected in this value.</p> </li> </ul> <p>If the table is in the <code>DELETING</code> state, no information about indexes will be returned.</p>"
@@ -1906,6 +2475,18 @@
       },
       "documentation":"<p>Represents the properties of a table.</p>"
     },
+    "TableId":{
+      "type":"string",
+      "pattern":"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    },
+    "TableInUseException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>There is another ongoing conflicting table operation on the table. This table is either being created, deleted, being used to create a backup or being restored from a backup.</p>",
+      "exception":true
+    },
     "TableName":{
       "type":"string",
       "max":255,
@@ -1915,6 +2496,14 @@
     "TableNameList":{
       "type":"list",
       "member":{"shape":"TableName"}
+    },
+    "TableNotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>Table not found for the given TableName.</p>",
+      "exception":true
     },
     "TableStatus":{
       "type":"string",
@@ -1978,6 +2567,8 @@
       "max":256,
       "min":0
     },
+    "TimeRangeLowerBound":{"type":"timestamp"},
+    "TimeRangeUpperBound":{"type":"timestamp"},
     "TimeToLiveAttributeName":{
       "type":"string",
       "max":255,
@@ -2042,6 +2633,32 @@
         }
       }
     },
+    "UpdateBackupRestoreSettingsInput":{
+      "type":"structure",
+      "required":[
+        "TableName",
+        "BackupRestoreSettingsInput"
+      ],
+      "members":{
+        "TableName":{
+          "shape":"TableName",
+          "documentation":"<p> Name of the table for which backup settings have to be updated.</p>"
+        },
+        "BackupRestoreSettingsInput":{
+          "shape":"BackupRestoreSettingsInput",
+          "documentation":"<p>Enable or disable backup restore settings. </p>"
+        }
+      }
+    },
+    "UpdateBackupRestoreSettingsOutput":{
+      "type":"structure",
+      "members":{
+        "BackupRestoreSettings":{
+          "shape":"BackupRestoreSettings",
+          "documentation":"<p>Backup and restore settings on the table when the backup was created.</p>"
+        }
+      }
+    },
     "UpdateExpression":{"type":"string"},
     "UpdateGlobalSecondaryIndexAction":{
       "type":"structure",
@@ -2082,7 +2699,7 @@
         },
         "Expected":{
           "shape":"ExpectedAttributeMap",
-          "documentation":"<p>This is a legacy parameter. Use <code>ConditionExpression</code> instead. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.Expected.html\">Expected</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
+          "documentation":"<p>This is a legacy parameter. Use <code>ConditionExpresssion</code> instead. For more information, see <a href=\"http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.Expected.html\">Expected</a> in the <i>Amazon DynamoDB Developer Guide</i>.</p>"
         },
         "ConditionalOperator":{
           "shape":"ConditionalOperator",
@@ -2090,7 +2707,7 @@
         },
         "ReturnValues":{
           "shape":"ReturnValue",
-          "documentation":"<p>Use <code>ReturnValues</code> if you want to get the item attributes as they appear before or after they are updated. For <code>UpdateItem</code>, the valid values are:</p> <ul> <li> <p> <code>NONE</code> - If <code>ReturnValues</code> is not specified, or if its value is <code>NONE</code>, then nothing is returned. (This setting is the default for <code>ReturnValues</code>.)</p> </li> <li> <p> <code>ALL_OLD</code> - Returns all of the attributes of the item, as they appeared before the UpdateItem operation.</p> </li> <li> <p> <code>UPDATED_OLD</code> - Returns only the updated attributes, as they appeared before the UpdateItem operation.</p> </li> <li> <p> <code>ALL_NEW</code> - Returns all of the attributes of the item, as they appear after the UpdateItem operation.</p> </li> <li> <p> <code>UPDATED_NEW</code> - Returns only the updated attributes, as they appear after the UpdateItem operation.</p> </li> </ul> <p>There is no additional cost associated with requesting a return value aside from the small network and processing overhead of receiving a larger response. No read capacity units are consumed.</p> <p>The values returned are strongly consistent.</p>"
+          "documentation":"<p>Use <code>ReturnValues</code> if you want to get the item attributes as they appeared either before or after they were updated. For <code>UpdateItem</code>, the valid values are:</p> <ul> <li> <p> <code>NONE</code> - If <code>ReturnValues</code> is not specified, or if its value is <code>NONE</code>, then nothing is returned. (This setting is the default for <code>ReturnValues</code>.)</p> </li> <li> <p> <code>ALL_OLD</code> - Returns all of the attributes of the item, as they appeared before the UpdateItem operation.</p> </li> <li> <p> <code>UPDATED_OLD</code> - Returns only the updated attributes, as they appeared before the UpdateItem operation.</p> </li> <li> <p> <code>ALL_NEW</code> - Returns all of the attributes of the item, as they appear after the UpdateItem operation.</p> </li> <li> <p> <code>UPDATED_NEW</code> - Returns only the updated attributes, as they appear after the UpdateItem operation.</p> </li> </ul> <p>There is no additional cost associated with requesting a return value aside from the small network and processing overhead of receiving a larger response. No Read Capacity Units are consumed.</p> <p>Values returned are strongly consistent</p>"
         },
         "ReturnConsumedCapacity":{"shape":"ReturnConsumedCapacity"},
         "ReturnItemCollectionMetrics":{
@@ -2121,7 +2738,7 @@
       "members":{
         "Attributes":{
           "shape":"AttributeMap",
-          "documentation":"<p>A map of attribute values as they appear before or after the <code>UpdateItem</code> operation, as determined by the <code>ReturnValues</code> parameter.</p> <p>The <code>Attributes</code> map is only present if <code>ReturnValues</code> was specified as something other than <code>NONE</code> in the request. Each element represents one attribute.</p>"
+          "documentation":"<p>A map of attribute values as they appeared before the <code>UpdateItem</code> operation. This map only appears if <code>ReturnValues</code> was specified as something other than <code>NONE</code> in the request. Each element represents one attribute.</p>"
         },
         "ConsumedCapacity":{
           "shape":"ConsumedCapacity",
